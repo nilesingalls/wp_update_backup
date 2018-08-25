@@ -3,7 +3,9 @@
   register: ipify_facts
 
 - name: list of config files
-  shell: ls /etc/httpd/conf.d/* | grep -v example.conf.template | grep -v README | grep -v autoindex.conf | grep -v deflate.conf | grep -v php.conf | grep -v welcome.conf | grep -v userdir.conf | grep -v ssl | grep -v {{ ipify_facts.ansible_facts.ipify_public_ip }}
+#  shell: ls /etc/httpd/conf.d/* | grep -v example.conf.template | grep -v README | grep -v autoindex.conf | grep -v deflate.conf | grep -v php.conf | grep -v welcome.conf | grep -v userdir.conf | grep -v ssl | grep -v {{ ipify_facts.ansible_facts.ipify_public_ip }}
+#  shell: grep DocumentRoot /etc/httpd/conf.d/* | grep public_html | cut -d ':' -f 1 | grep -v le-ssl.conf
+  shell: ls /etc/httpd/conf.d/firebellymarketing.com.conf
   register: apache_conf
 
 - name: apache_conf
@@ -18,6 +20,7 @@
   raw: |
     DATE=`date +"%Y-%m-%d"`
     WP_GROUP={{ WP_GROUP }}
+    PLAYBOOK_DIR={{ playbook_dir }}
     WP_SITE=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 2)
     WP_USER=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 4 | cut -d '/' -f 3)
     WP_PATH=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 4)
@@ -25,14 +28,14 @@
     WP_USER_HOME="/home/$WP_USER"
     WP_DB=$(grep DB_NAME $WP_PATH/wp-config.php | cut -d ',' -f 2 | grep -Po "(?<=')[^']*" | head -n 1); 
     # check to see if we have theme related issues
-    sudo -u $WP_USER $WP_BINARY core check-update --path=$WP_PATH; SKIP_ALL=$?;
-    if [ "$SKIP_ALL" -eq 0 ]; then SKIP=""; else sudo -u $WP_USER $WP_BINARY core check-update --skip-plugins --path=$WP_PATH; SKIP_ALL=$?; fi
-    if [ "$SKIP_ALL" -eq 0 ] && [ -z "$SKIP+xxx" ]; then SKIP="--skip-plugins"; else sudo -u $WP_USER $WP_BINARY core check-update --skip-plugins --skip-themes --path=$WP_PATH; SKIP_ALL=$?; fi
+    sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp core check-update --path=$WP_PATH; SKIP_ALL=$?;
+    if [ "$SKIP_ALL" -eq 0 ]; then SKIP=""; else sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp core check-update --skip-plugins --path=$WP_PATH; SKIP_ALL=$?; fi
+    if [ "$SKIP_ALL" -eq 0 ] && [ -z "$SKIP+xxx" ]; then SKIP="--skip-plugins"; else sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp core check-update --skip-plugins --skip-themes --path=$WP_PATH; SKIP_ALL=$?; fi
     if [ "$SKIP_ALL" -eq 0 ] && [ ! "$SKIP" == "--skip-plugins" ]; then SKIP="--skip-plugins --skip-themes"; fi
-    sudo -u $WP_USER $WP_BINARY core check-update --path=$WP_PATH $SKIP | grep Success; WP_CORE=$?;
-    echo "sudo -u $WP_USER $WP_BINARY core check-update --path=$WP_PATH $SKIP | grep Success;"
-    sudo -u $WP_USER $WP_BINARY plugin list --path=$WP_PATH $SKIP | grep available 1>&2; WP_PLUGINS=$?; 
-    sudo -u $WP_USER $WP_BINARY theme list --path=$WP_PATH $SKIP | grep available 1>&2; WP_THEMES=$?;
+    sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp core check-update --path=$WP_PATH $SKIP | grep Success; WP_CORE=$?;
+    echo "sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp core check-update --path=$WP_PATH $SKIP | grep Success;"
+    sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp plugin list --path=$WP_PATH $SKIP | grep available 1>&2; WP_PLUGINS=$?; 
+    sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp theme list --path=$WP_PATH $SKIP | grep available 1>&2; WP_THEMES=$?;
     # expected outcome is WP_CORE = 0 WP_PLUGINS = 1 WP_THEMES = 1
     echo "WP_CORE = $WP_CORE WP_PLUGINS = $WP_PLUGINS WP_THEMES = $WP_THEMES SKIP = $SKIP";
     if [ "$WP_THEMES" -eq 0 ]; then mail -s "WP_Theme Update for $WP_SITE" {{ ADMIN_EMAIL }} < /dev/null; fi
@@ -42,14 +45,14 @@
     if [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ] && [ ! -f "$WP_USER_HOME/$DATE-$WP_SITE.sql" ]; then mysqldump -p{{ MYSQLDBPASS}} $WP_DB > $WP_USER_HOME/$DATE-$WP_SITE.sql; fi
     if [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ] && [ ! -f "$WP_USER_HOME/$DATE-$WP_SITE.tar.gz" ]; then tar czvf $WP_USER_HOME/$DATE-$WP_SITE.tar.gz $WP_PATH $WP_USER_HOME/$DATE-$WP_SITE.sql; fi
     # push to google drive
-    if [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ] && [ -f "$WP_USER_HOME/$DATE-$WP_SITE.tar.gz" ]; then ./utilities/google-drive-upload/upload.sh $WP_USER_HOME/$DATE-$WP_SITE.tar.gz {{ FOLDERNAME }}; fi
+    if [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ] && [ -f "$WP_USER_HOME/$DATE-$WP_SITE.tar.gz" ]; then $PLAYBOOK_DIR/utilities/google-drive-upload/upload.sh $WP_USER_HOME/$DATE-$WP_SITE.tar.gz {{ FOLDERNAME }}; fi
     # remove db and tar file
     if [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ] && [ -f "$WP_USER_HOME/$DATE-$WP_SITE.sql" ]; then rm $WP_USER_HOME/$DATE-$WP_SITE.sql; fi
     if [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ] && [ -f "$WP_USER_HOME/$DATE-$WP_SITE.tar.gz" ]; then rm $WP_USER_HOME/$DATE-$WP_SITE.tar.gz; fi
-    if [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ]; then echo "user is $WP_USER site is $WP_SITE path is $WP_PATH"; fi
+    if [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ]; then echo "user is $WP_USER site is $WP_SITE path is $WP_PATH - fixing site permissions"; fi
     if [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ]; then find $WP_PATH -exec chown $WP_USER:$WP_GROUP {} \;; find $WP_PATH -type d -exec chmod 755 {} \;; find $WP_PATH -type f -exec chmod 644 {} \;; chgrp {{ WP_GROUP }} $WP_PATH/wp-config.php; chmod 660 $WP_PATH/wp-config.php; find $WP_PATH/wp-content -exec chgrp {{ WP_GROUP }} {} \;; find $WP_PATH/wp-content -type d -exec chmod 775 {} \;; find $WP_PATH/wp-content -type f -exec chmod 664 {} \;; fi
-    if [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ]; then sudo -u $WP_USER $WP_BINARY --path=$WP_PATH core update $SKIP; fi
-    if [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ]; then sudo -u $WP_USER $WP_BINARY --path=$WP_PATH plugin update --all $SKIP; fi
+    if [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ]; then sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp core update --path=$WP_PATH $SKIP; fi
+    if [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ]; then sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp plugin update --all --path=$WP_PATH --all $SKIP; fi
   with_items: "{{ apache_conf.stdout_lines }}"
   ignore_errors: true
 

@@ -5,7 +5,6 @@
   vars:
     config_files: []
     config_data: []
-    WP_BINARY: utilities/wp-cli/bin/wp
     WP_GROUP: apache
     MYSQLDBPASS: "{{ MYSQLDBPASS }}"
     FOLDERNAME: "{{ FOLDERNAME }}"

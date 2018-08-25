@@ -4,7 +4,7 @@ run the upload.sh manually first, and it will prompt you through verifying your 
 
 run:
 ansible-galaxy install -p ./roles/ -r requirements.yml
-ansible-playbook ansible_wp_update.yml -e "MYSQLDBPASS=yourpassword FOLERNAME=yourfoldername ADMIN_EMAIL=your@email"
+ansible-playbook ansible_wp_update.yml -e "MYSQLDBPASS=yourpassword FOLDERNAME=yourfoldername ADMIN_EMAIL=your@email"
 
 TODO:
 if a theme update is requires, check to see if the ACTIVE theme has an update.  if it doesn't, then automatically update it.
