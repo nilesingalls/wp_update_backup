@@ -1,0 +1,8 @@
+- git:
+    repo: 'https://github.com/wp-cli/wp-cli.git'
+    dest: utilities/wp-cli
+  register: returnwp
+
+- name:
+  shell: cd utilities/wp-cli; composer install
+  when: returnwp.changed == true

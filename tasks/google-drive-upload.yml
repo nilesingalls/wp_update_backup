@@ -1,0 +1,3 @@
+- git:
+    repo: 'https://github.com/labbots/google-drive-upload.git'
+    dest: utilities/google-drive-upload
