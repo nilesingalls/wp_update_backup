@@ -1,17 +1,9 @@
-- name: get my public IP
-  ipify_facts:
-  register: ipify_facts
-
 - name: list of config files
-#  shell: ls /etc/httpd/conf.d/* | grep -v example.conf.template | grep -v README | grep -v autoindex.conf | grep -v deflate.conf | grep -v php.conf | grep -v welcome.conf | grep -v userdir.conf | grep -v ssl | grep -v {{ ipify_facts.ansible_facts.ipify_public_ip }}
-#  shell: grep DocumentRoot /etc/httpd/conf.d/* | grep public_html | cut -d ':' -f 1 | grep -v le-ssl.conf
-  shell: ls /etc/httpd/conf.d/firebellymarketing.com.conf
+  shell: grep DocumentRoot /etc/httpd/conf.d/* | grep public_html | cut -d ':' -f 1 | grep -v le-ssl.conf
   register: apache_conf
 
 - name: apache_conf
   debug: msg={{ apache_conf.stdout_lines }}
-
-#- meta: end_play
 
 # check core, if check fails e-mail someone.
 # if we can update core, check plugins. rinse repeat. themes. rinse repeat.
@@ -40,12 +32,12 @@
     echo "WP_CORE = $WP_CORE WP_PLUGINS = $WP_PLUGINS WP_THEMES = $WP_THEMES SKIP = $SKIP";
     if [ "$WP_THEMES" -eq 0 ]; then mail -s "WP_Theme Update for $WP_SITE" {{ ADMIN_EMAIL }} < /dev/null; fi
     # bail out if both core and plugins are current
-    if [ "$WP_CORE" -eq 0 ] && [ "$WP_PLUGINS" -eq 1 ]; then exit; fi
+    if [ "$WP_CORE" -eq 0 ] && [ "$WP_PLUGINS" -eq 1 ] && [ "$WP_THEMES" -eq 1 ]; then exit; fi
     # create backup of database and content files
     if [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ] && [ ! -f "$WP_USER_HOME/$DATE-$WP_SITE.sql" ]; then mysqldump -p{{ MYSQLDBPASS}} $WP_DB > $WP_USER_HOME/$DATE-$WP_SITE.sql; fi
     if [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ] && [ ! -f "$WP_USER_HOME/$DATE-$WP_SITE.tar.gz" ]; then tar czvf $WP_USER_HOME/$DATE-$WP_SITE.tar.gz $WP_PATH $WP_USER_HOME/$DATE-$WP_SITE.sql; fi
     # push to google drive
-    if [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ] && [ -f "$WP_USER_HOME/$DATE-$WP_SITE.tar.gz" ]; then $PLAYBOOK_DIR/utilities/google-drive-upload/upload.sh $WP_USER_HOME/$DATE-$WP_SITE.tar.gz {{ FOLDERNAME }}; fi
+    if [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ] && [ -f "$WP_USER_HOME/$DATE-$WP_SITE.tar.gz" ]; then cd $PLAYBOOK_DIR/utilities/google-drive-upload; ./upload.sh $WP_USER_HOME/$DATE-$WP_SITE.tar.gz {{ FOLDERNAME }}; fi
     # remove db and tar file
     if [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ] && [ -f "$WP_USER_HOME/$DATE-$WP_SITE.sql" ]; then rm $WP_USER_HOME/$DATE-$WP_SITE.sql; fi
     if [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ] && [ -f "$WP_USER_HOME/$DATE-$WP_SITE.tar.gz" ]; then rm $WP_USER_HOME/$DATE-$WP_SITE.tar.gz; fi
