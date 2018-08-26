@@ -25,11 +25,9 @@
     if [ "$SKIP_ALL" -eq 0 ] && [ -z "$SKIP+xxx" ]; then SKIP="--skip-plugins"; else sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp core check-update --skip-plugins --skip-themes --path=$WP_PATH; SKIP_ALL=$?; fi
     if [ "$SKIP_ALL" -eq 0 ] && [ ! "$SKIP" == "--skip-plugins" ]; then SKIP="--skip-plugins --skip-themes"; fi
     sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp core check-update --path=$WP_PATH $SKIP | grep Success; WP_CORE=$?;
-    echo "sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp core check-update --path=$WP_PATH $SKIP | grep Success;"
     sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp plugin list --path=$WP_PATH $SKIP | grep available 1>&2; WP_PLUGINS=$?; 
     sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp theme list --path=$WP_PATH $SKIP | grep available 1>&2; WP_THEMES=$?;
     # expected outcome is WP_CORE = 0 WP_PLUGINS = 1 WP_THEMES = 1
-    echo "WP_CORE = $WP_CORE WP_PLUGINS = $WP_PLUGINS WP_THEMES = $WP_THEMES SKIP = $SKIP";
     if [ "$WP_THEMES" -eq 0 ]; then mail -s "WP_Theme Update for $WP_SITE" {{ ADMIN_EMAIL }} < /dev/null; fi
     # bail out if both core and plugins are current
     if [ "$WP_CORE" -eq 0 ] && [ "$WP_PLUGINS" -eq 1 ] && [ "$WP_THEMES" -eq 1 ]; then exit; fi
@@ -43,8 +41,8 @@
     if [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ] && [ -f "$WP_USER_HOME/$DATE-$WP_SITE.tar.gz" ]; then rm $WP_USER_HOME/$DATE-$WP_SITE.tar.gz; fi
     if [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ]; then echo "user is $WP_USER site is $WP_SITE path is $WP_PATH - fixing site permissions"; fi
     if [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ]; then find $WP_PATH -exec chown $WP_USER:$WP_GROUP {} \;; find $WP_PATH -type d -exec chmod 755 {} \;; find $WP_PATH -type f -exec chmod 644 {} \;; chgrp {{ WP_GROUP }} $WP_PATH/wp-config.php; chmod 660 $WP_PATH/wp-config.php; find $WP_PATH/wp-content -exec chgrp {{ WP_GROUP }} {} \;; find $WP_PATH/wp-content -type d -exec chmod 775 {} \;; find $WP_PATH/wp-content -type f -exec chmod 664 {} \;; fi
-    if [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ]; then sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp core update --path=$WP_PATH $SKIP; fi
-    if [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ]; then sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp plugin update --all --path=$WP_PATH --all $SKIP; fi
+    if [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ]; then sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp core update --path=$WP_PATH $SKIP; FAIL=$?; fi
+    if [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ]; then sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp plugin update --all --path=$WP_PATH --all $SKIP | grep Error; FAIL=$?; fi
+    if [ "$FAIL" -eq 0 ]; then FAIL=$(sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp plugin update --all --path=$WP_PATH --all $SKIP | grep Error); echo $FAIL | mailx -s "WP_Plugin Update fail for $WP_SITE" niles@atheos.net; fi
   with_items: "{{ apache_conf.stdout_lines }}"
   ignore_errors: true
-
