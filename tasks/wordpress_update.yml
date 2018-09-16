@@ -1,5 +1,5 @@
 - name: list of config files
-  shell: grep DocumentRoot /etc/httpd/conf.d/* | grep public_html | cut -d ':' -f 1 | grep -v le-ssl.conf
+  shell: grep DocumentRoot {{ DocumentRoot }} | grep public_html | cut -d ':' -f 1 | grep -v le-ssl.conf
   register: apache_conf
 
 - name: apache_conf

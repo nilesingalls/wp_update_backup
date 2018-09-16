@@ -6,6 +6,7 @@
     config_files: []
     config_data: []
     WP_GROUP: apache
+    DocumentRoot: "{{ DocumentRoot | default('/etc/httpd/conf.d/*') }}"
     MYSQLDBPASS: "{{ MYSQLDBPASS }}"
     FOLDERNAME: "{{ FOLDERNAME }}"
     ADMIN_EMAIL: "{{ ADMIN_EMAIL }}"
