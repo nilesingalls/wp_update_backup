@@ -6,7 +6,8 @@ install to an unprivileges directory so that that user accounts can execute wp-c
 run:
 ansible-galaxy install -p ./roles/ -r requirements.yml
 ansible-playbook ansible_wp_update.yml -e "MYSQLDBPASS=yourpassword FOLDERNAME=yourfoldername ADMIN_EMAIL=your@email"
-
+(or, if you're on debian/ubuntu, or otherwise have a different path for apache)
+ansible-playbook ansible_wp_update.yml -e "MYSQLDBPASS=yourpassword FOLDERNAME=yourfoldername ADMIN_EMAIL=your@email DocumentRoot=/etc/httpd/sites-enabled/*"
 TODO:
 if a theme update is requires, check to see if the ACTIVE theme has an update.  if it doesn't, then automatically update it.
 only e-mail and skip theme update if active needs updated. (because updating an active theme often fails miseriably)
