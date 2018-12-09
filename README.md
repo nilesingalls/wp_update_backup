@@ -1,8 +1,10 @@
 
 go setup your google drive api stuff first, you need CLIENT_ID CLIENT_SECRET CLIENT_SECRET ACCESS_TOKEN
 (obtained from here: https://console.developers.google.com/)
-
-run the upload.sh manually first, and it will prompt you through verifying your API access.
+after that, run this, and nuke it after it installed all the dependencies. 
+Then, go to utilities/google-drive-upload and execute (any random file)  ./upload.sh -r _folder_key_ _random_file_ {your folder}
+you can get that google folder key on google drive - click link - extract the key from that link. AFter that, you're asked for 
+the Client ID and Client Secret - and it will walk you through the process.
 
 install to an unprivileges directory so that that user accounts can execute wp-cli
 run:
