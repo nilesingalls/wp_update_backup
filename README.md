@@ -1,5 +1,7 @@
 
 go setup your google drive api stuff first, you need CLIENT_ID CLIENT_SECRET CLIENT_SECRET ACCESS_TOKEN
+(obtained from here: https://console.developers.google.com/)
+
 run the upload.sh manually first, and it will prompt you through verifying your API access.
 
 install to an unprivileges directory so that that user accounts can execute wp-cli
