@@ -1,0 +1,17 @@
+- hosts: localhost
+  gather_facts: no
+  roles:
+    - composer
+  vars:
+    config_files: []
+    config_data: []
+    WP_GROUP: apache
+    DocumentRoot: "{{ ApacheConfDir | default('/etc/httpd/conf.d/*') }}"
+    MYSQLDBPASS: "{{ MYSQLDBPASS }}"
+    FOLDERNAME: "{{ FOLDERNAME }}"
+    ADMIN_EMAIL: "{{ ADMIN_EMAIL }}"
+
+  tasks:
+    - import_tasks: tasks/wp-cli.yml
+    - import_tasks: tasks/google-drive-upload.yml
+    - import_tasks: tasks/wordpress_backup_only.yml
