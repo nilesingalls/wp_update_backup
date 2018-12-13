@@ -19,11 +19,19 @@
     if [ ! -f "$WP_PATH/wp-config.php" ]; then exit; fi
     WP_USER_HOME="/home/$WP_USER"
     WP_DB=$(grep DB_NAME $WP_PATH/wp-config.php | cut -d ',' -f 2 | grep -Po "(?<=')[^']*" | head -n 1); 
+    # check for musicclub 
+    sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp theme list --path=$WP_PATH --skip-themes | grep musicclub; SKIP_THEMES=$?;
+    if [ "$SKIP_THEMES" -eq 0 ]; then SKIP="--skip-themes"; fi
+
     # check to see if we have theme related issues
     sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp core check-update --path=$WP_PATH; SKIP_ALL=$?;
     if [ "$SKIP_ALL" -eq 0 ]; then SKIP=""; else sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp core check-update --skip-plugins --path=$WP_PATH; SKIP_ALL=$?; fi
     if [ "$SKIP_ALL" -eq 0 ] && [ -z "$SKIP+xxx" ]; then SKIP="--skip-plugins"; else sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp core check-update --skip-plugins --skip-themes --path=$WP_PATH; SKIP_ALL=$?; fi
     if [ ! "$SKIP_ALL" -eq 0 ]; then SKIP="--skip-plugins --skip-themes"; fi
+    # check for musicclub 
+    sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp theme list --path=$WP_PATH --skip-themes | grep musicclub; SKIP_THEMES=$?;
+    if [ "$SKIP_THEMES" -eq 0 ]; then SKIP="--skip-themes"; fi
+
     sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp core check-update --path=$WP_PATH $SKIP | grep Success; WP_CORE=$?;
     sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp plugin list --path=$WP_PATH $SKIP | grep available 1>&2; WP_PLUGINS=$?; 
     sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp theme list --path=$WP_PATH $SKIP | grep available 1>&2; WP_THEMES=$?;
