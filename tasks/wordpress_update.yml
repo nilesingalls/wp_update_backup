@@ -17,6 +17,10 @@
     WP_USER=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 4 | cut -d '/' -f 3)
     WP_PATH=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 4)
     if [ ! -f "$WP_PATH/wp-config.php" ]; then exit; fi
+    if [ ! -d "$WP_PATH/.wp-cli" ]; then
+      mkdir $WP_PATH/.wp-cli
+      chown $WP_USER:$WP_USER $WP_PATH/.wp-cli
+    fi
     WP_USER_HOME="/home/$WP_USER"
     WP_DB=$(grep DB_NAME $WP_PATH/wp-config.php | cut -d ',' -f 2 | grep -Po "(?<=')[^']*" | head -n 1); 
     # check for musicclub 
