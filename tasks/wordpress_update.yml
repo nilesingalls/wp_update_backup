@@ -5,6 +5,23 @@
 - name: apache_conf
   debug: msg={{ apache_conf.stdout_lines }}
 
+- name: find user and home directory
+  raw: |
+    grep DocumentRoot {{ item }} | sed -e 's/^[[:space:]]*DocumentRoot[[:space:]]//' -e 's/[[:space:]]*$//'
+  loop: "{{ apache_conf.stdout_lines }}"
+  register: findvhost
+
+- name: create wp cache dir
+  file:
+    path: "{{ item.stdout.split('public_html')[0] }}.wp-cli/cache"
+    state: directory
+    recurse: yes
+    mode: '0755'
+    owner: "{{ item.stdout.split('/')[2] }}"
+    group: "{{ item.stdout.split('/')[2] }}"
+  loop: "{{ findvhost.results }}"
+  become: yes
+
 # check core, if check fails e-mail someone.
 # if we can update core, check plugins. rinse repeat. themes. rinse repeat.
 # add a check to see if there's wp-config.php in the users home directory before doing all the wp stuff
