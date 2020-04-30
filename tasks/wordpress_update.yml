@@ -75,5 +75,6 @@
     if [ "$WP_CORE" -eq 1 ] && [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ]; then chown {{ WP_GROUP }}:{{ WP_GROUP }} $WP_PATH/wp-admin/includes/file.php; fi
     if [ "$WP_PLUGINS" -eq 0 ] && [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ]; then sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp plugin update --all --path=$WP_PATH --all $SKIP | grep Error; FAIL=$?; fi
     if [ "$FAIL" -eq 0 ]; then FAIL=$(sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp plugin update --all --path=$WP_PATH --all $SKIP | grep Error); echo $FAIL | mailx -s "WP_Plugin Update fail for $WP_SITE" niles@atheos.net; fi
+    /usr/local/bin/wp-fixperms.sh $WP_USER
   with_items: "{{ apache_conf.stdout_lines }}"
   ignore_errors: true
