@@ -1,2 +1,4 @@
+- src: https://github.com/geerlingguy/ansible-role-pip/archive/master.tar.gz
+  name: ansible-role-pip
 - src: geerlingguy.composer
   name: composer

@@ -2,14 +2,25 @@
   shell: grep DocumentRoot {{ DocumentRoot }} | grep public_html | cut -d ':' -f 1 | grep -v le-ssl.conf
   register: apache_conf
 
-- name: apache_conf
-  debug: msg={{ apache_conf.stdout_lines }}
-
 - name: find user and home directory
   raw: |
     grep DocumentRoot {{ item }} | sed -e 's/^[[:space:]]*DocumentRoot[[:space:]]//' -e 's/[[:space:]]*$//'
   loop: "{{ apache_conf.stdout_lines }}"
   register: findvhost
+
+
+# go for a loop, IF we have a wp-config.php
+
+- include: tasks/update_host.yml
+  loop: "{{ findvhost.results }}"
+  loop_control:
+    loop_var: bu
+  become: yes
+  vars:
+#    wp_user: "{{ bu.split('/')[1] }}"
+#    workspace_adom: "{{ install_ca.name }}"
+
+- meta: end_play
 
 - name: create wp cache dir
   file:

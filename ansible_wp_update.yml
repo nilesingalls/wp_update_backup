@@ -1,14 +1,21 @@
-- hosts: localhost
+#- hosts: localhost
+- hosts: all
 #  gather_facts: no
   roles:
-    - composer
+    - { role: composer, become: yes }
   vars:
     config_files: []
     config_data: []
     WP_GROUP: apache
-    DocumentRoot: "{{ ApacheConfDir | default('/etc/httpd/conf.d/*') }}"
+    DocumentRoot: "{{'/etc/apache2/sites-enabled/*' if (ansible_distribution == 'Debian') else '/etc/httpd/conf.d/*' }}"
+    FOLDERNAME: wp_backups
+    SkipThemes:
+      - musicclub
+    SkipPlugins:
+      - qt-kentha-contactform
+
     MYSQLDBPASS: "{{ MYSQLDBPASS }}"
-    FOLDERNAME: "{{ FOLDERNAME }}"
+    FOLDERNAME: wp_backups
     ADMIN_EMAIL: "{{ ADMIN_EMAIL }}"
 
   tasks:
