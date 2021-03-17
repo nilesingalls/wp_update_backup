@@ -1,0 +1,60 @@
+---
+- name: wp update plugins
+  raw: |
+    DATE=`date +"%Y-%m-%d"`
+    WP_GROUP={{ WP_GROUP }}
+    PLAYBOOK_DIR={{ playbook_dir }}
+    WP_SITE=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ bu.item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 2)
+    WP_USER=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ bu.item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 4 | cut -d '/' -f 3)
+    WP_PATH=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ bu.item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 4)
+    WP_USER_HOME="/home/$WP_USER"
+    sudo -u $WP_USER utilities/wp-cli/bin/wp --skip-themes --skip-plugins plugin list --path=$WP_PATH | grep available 1>&2; WP_PLUGINS=$?;
+    if [ "$WP_PLUGINS" -eq 0 ]; then sudo -u $WP_USER utilities/wp-cli/bin/wp --skip-themes --skip-plugins plugin update --all --path=$WP_PATH; WP_UPDATE_PLUGINS=$?; fi
+    if [ "$WP_PLUGINS" -eq 0 ] && [ "$WP_UPDATE_PLUGINS" -ne 0 ]; then sudo -u $WP_USER utilities/wp-cli/bin/wp plugin --skip-themes --skip-plugins update --all --path=$WP_PATH --skip-themes | grep Error; FAIL=$?; fi
+    if [ "$FAIL" -eq 0 ]; then FAIL=$(sudo -u $WP_USER utilities/wp-cli/bin/wp --skip-themes --skip-plugins plugin update --all --path=$WP_PATH --all | grep Error); echo $FAIL | mailx -s "WP_Plugin Update fail for $WP_SITE" niles@atheos.net; fi
+  when: skip_themes == True and skip_plugins == True
+
+- name: wp update plugins
+  raw: |
+    DATE=`date +"%Y-%m-%d"`
+    WP_GROUP={{ WP_GROUP }}
+    PLAYBOOK_DIR={{ playbook_dir }}
+    WP_SITE=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ bu.item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 2)
+    WP_USER=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ bu.item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 4 | cut -d '/' -f 3)
+    WP_PATH=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ bu.item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 4)
+    WP_USER_HOME="/home/$WP_USER"
+    sudo -u $WP_USER utilities/wp-cli/bin/wp --skip-themes plugin list --path=$WP_PATH | grep available 1>&2; WP_PLUGINS=$?;
+    if [ "$WP_PLUGINS" -eq 0 ]; then sudo -u $WP_USER utilities/wp-cli/bin/wp --skip-themes plugin update --all --path=$WP_PATH; WP_UPDATE_PLUGINS=$?; fi
+    if [ "$WP_PLUGINS" -eq 0 ] && [ "$WP_UPDATE_PLUGINS" -ne 0 ]; then sudo -u $WP_USER utilities/wp-cli/bin/wp plugin --skip-themes update --all --path=$WP_PATH --skip-themes | grep Error; FAIL=$?; fi
+    if [ "$FAIL" -eq 0 ]; then FAIL=$(sudo -u $WP_USER utilities/wp-cli/bin/wp --skip-themes plugin update --all --path=$WP_PATH --all | grep Error); echo $FAIL | mailx -s "WP_Plugin Update fail for $WP_SITE" niles@atheos.net; fi
+  when: skip_themes == True and skip_plugins == False
+
+- name: wp update plugins
+  raw: |
+    DATE=`date +"%Y-%m-%d"`
+    WP_GROUP={{ WP_GROUP }}
+    PLAYBOOK_DIR={{ playbook_dir }}
+    WP_SITE=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ bu.item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 2)
+    WP_USER=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ bu.item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 4 | cut -d '/' -f 3)
+    WP_PATH=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ bu.item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 4)
+    WP_USER_HOME="/home/$WP_USER"
+    sudo -u $WP_USER utilities/wp-cli/bin/wp --skip-plugins plugin list --path=$WP_PATH | grep available 1>&2; WP_PLUGINS=$?;
+    if [ "$WP_PLUGINS" -eq 0 ]; then sudo -u $WP_USER utilities/wp-cli/bin/wp --skip-plugins plugin update --all --path=$WP_PATH; WP_UPDATE_PLUGINS=$?; fi
+    if [ "$WP_PLUGINS" -eq 0 ] && [ "$WP_UPDATE_PLUGINS" -ne 0 ]; then sudo -u $WP_USER utilities/wp-cli/bin/wp plugin --skip-plugins update --all --path=$WP_PATH --skip-themes | grep Error; FAIL=$?; fi
+    if [ "$FAIL" -eq 0 ]; then FAIL=$(sudo -u $WP_USER utilities/wp-cli/bin/wp --skip-plugins plugin update --all --path=$WP_PATH --all | grep Error); echo $FAIL | mailx -s "WP_Plugin Update fail for $WP_SITE" niles@atheos.net; fi
+  when: skip_themes == False and skip_plugins == True
+
+- name: wp update plugins
+  raw: |
+    DATE=`date +"%Y-%m-%d"`
+    WP_GROUP={{ WP_GROUP }}
+    PLAYBOOK_DIR={{ playbook_dir }}
+    WP_SITE=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ bu.item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 2)
+    WP_USER=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ bu.item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 4 | cut -d '/' -f 3)
+    WP_PATH=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ bu.item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 4)
+    WP_USER_HOME="/home/$WP_USER"
+    sudo -u $WP_USER utilities/wp-cli/bin/wp plugin list --path=$WP_PATH | grep available 1>&2; WP_PLUGINS=$?;
+    if [ "$WP_PLUGINS" -eq 0 ]; then sudo -u $WP_USER utilities/wp-cli/bin/wp plugin update --all --path=$WP_PATH; WP_UPDATE_PLUGINS=$?; fi
+    if [ "$WP_PLUGINS" -eq 0 ] && [ "$WP_UPDATE_PLUGINS" -ne 0 ]; then sudo -u $WP_USER utilities/wp-cli/bin/wp plugin --all --path=$WP_PATH | grep Error; FAIL=$?; fi
+    if [ "$FAIL" -eq 0 ]; then FAIL=$(sudo -u $WP_USER utilities/wp-cli/bin/wp plugin update --all --path=$WP_PATH --all | grep Error); echo $FAIL | mailx -s "WP_Plugin Update fail for $WP_SITE" niles@atheos.net; fi
+  when: skip_themes == False and skip_plugins == False

@@ -1,0 +1,60 @@
+---
+- name: wp update core skip_themes skip_plugins
+  raw: |
+    DATE=`date +"%Y-%m-%d"`
+    WP_GROUP={{ WP_GROUP }}
+    PLAYBOOK_DIR={{ playbook_dir }}
+    WP_SITE=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ bu.item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 2)
+    WP_USER=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ bu.item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 4 | cut -d '/' -f 3)
+    WP_PATH=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ bu.item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 4)
+    WP_USER_HOME="/home/$WP_USER"
+    sudo -u $WP_USER utilities/wp-cli/bin/wp --allow-root core check-update --skip-themes --skip-plugins --path=$WP_PATH | grep Success 1>&2; WP_CORE=$?; 
+    if [ "$WP_CORE" -ne 0 ]; then utilities/wp-cli/bin/wp --allow-root --skip-themes --skip-plugins core update --path=$WP_PATH; fi
+    if [ "$WP_CORE" -ne 0 ]; then sudo wp-fixperms.sh $WP_USER; fi
+  become: yes
+  when: skip_themes == True and skip_plugins == True
+
+- name: wp update core skip_themes
+  raw: |
+    DATE=`date +"%Y-%m-%d"`
+    WP_GROUP={{ WP_GROUP }}
+    PLAYBOOK_DIR={{ playbook_dir }}
+    WP_SITE=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ bu.item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 2)
+    WP_USER=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ bu.item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 4 | cut -d '/' -f 3)
+    WP_PATH=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ bu.item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 4)
+    WP_USER_HOME="/home/$WP_USER"
+    sudo -u $WP_USER utilities/wp-cli/bin/wp --allow-root core check-update --skip-themes --path=$WP_PATH | grep Success 1>&2; WP_CORE=$?;
+    if [ "$WP_CORE" -ne 0 ]; then utilities/wp-cli/bin/wp --allow-root --skip-themes core update --path=$WP_PATH; fi
+    if [ "$WP_CORE" -ne 0 ]; then sudo wp-fixperms.sh $WP_USER; fi
+  become: yes
+  when: skip_themes == True and skip_plugins == False
+
+- name: wp update core skip_plugins
+  raw: |
+    DATE=`date +"%Y-%m-%d"`
+    WP_GROUP={{ WP_GROUP }}
+    PLAYBOOK_DIR={{ playbook_dir }}
+    WP_SITE=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ bu.item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 2)
+    WP_USER=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ bu.item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 4 | cut -d '/' -f 3)
+    WP_PATH=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ bu.item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 4)
+    WP_USER_HOME="/home/$WP_USER"
+    sudo -u $WP_USER utilities/wp-cli/bin/wp --allow-root core check-update --skip-plugins --path=$WP_PATH | grep Success 1>&2; WP_CORE=$?;
+    if [ "$WP_CORE" -ne 0 ]; then utilities/wp-cli/bin/wp --allow-root --skip-plugins core update --path=$WP_PATH; fi
+    if [ "$WP_CORE" -ne 0 ]; then sudo wp-fixperms.sh $WP_USER; fi
+  become: yes
+  when: skip_themes == False and skip_plugins == True
+
+- name: wp update core
+  raw: |
+    DATE=`date +"%Y-%m-%d"`
+    WP_GROUP={{ WP_GROUP }}
+    PLAYBOOK_DIR={{ playbook_dir }}
+    WP_SITE=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ bu.item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 2)
+    WP_USER=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ bu.item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 4 | cut -d '/' -f 3)
+    WP_PATH=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ bu.item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 4)
+    WP_USER_HOME="/home/$WP_USER"
+    sudo -u $WP_USER utilities/wp-cli/bin/wp --allow-root core check-update --path=$WP_PATH | grep Success 1>&2; WP_CORE=$?;
+    if [ "$WP_CORE" -ne 0 ]; then utilities/wp-cli/bin/wp --allow-root core update --path=$WP_PATH; fi
+    if [ "$WP_CORE" -ne 0 ]; then wp-fixperms.sh $WP_USER; fi 
+  become: yes
+  when: skip_themes == False and skip_plugins == False

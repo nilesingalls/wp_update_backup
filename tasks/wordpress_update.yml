@@ -8,20 +8,6 @@
   loop: "{{ apache_conf.stdout_lines }}"
   register: findvhost
 
-
-# go for a loop, IF we have a wp-config.php
-
-- include: tasks/update_host.yml
-  loop: "{{ findvhost.results }}"
-  loop_control:
-    loop_var: bu
-  become: yes
-  vars:
-#    wp_user: "{{ bu.split('/')[1] }}"
-#    workspace_adom: "{{ install_ca.name }}"
-
-- meta: end_play
-
 - name: create wp cache dir
   file:
     path: "{{ item.stdout.split('public_html')[0] }}.wp-cli/cache"
@@ -32,60 +18,12 @@
     group: "{{ item.stdout.split('/')[2] }}"
   loop: "{{ findvhost.results }}"
   become: yes
+  when: canceledfornow is defined
 
-# check core, if check fails e-mail someone.
-# if we can update core, check plugins. rinse repeat. themes. rinse repeat.
-# add a check to see if there's wp-config.php in the users home directory before doing all the wp stuff
-- name: do all the things
-  raw: |
-    DATE=`date +"%Y-%m-%d"`
-    WP_GROUP={{ WP_GROUP }}
-    PLAYBOOK_DIR={{ playbook_dir }}
-    WP_SITE=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 2)
-    WP_USER=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 4 | cut -d '/' -f 3)
-    WP_PATH=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 4)
-    if [ ! -f "$WP_PATH/wp-config.php" ]; then exit; fi
-    if [ ! -d "$WP_PATH/.wp-cli" ]; then
-      mkdir $WP_PATH/.wp-cli
-      chown $WP_USER:$WP_USER $WP_PATH/.wp-cli
-    fi
-    WP_USER_HOME="/home/$WP_USER"
-    WP_DB=$(grep DB_NAME $WP_PATH/wp-config.php | cut -d ',' -f 2 | grep -Po "(?<=')[^']*" | head -n 1); 
-    # check for musicclub 
-    sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp theme list --path=$WP_PATH --skip-themes | grep musicclub; SKIP_THEMES=$?;
-    if [ "$SKIP_THEMES" -eq 0 ]; then SKIP="--skip-themes"; fi
+# go for a loop, IF we have a wp-config.php
 
-    # check to see if we have theme related issues
-    sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp core check-update --path=$WP_PATH; SKIP_ALL=$?;
-    if [ "$SKIP_ALL" -eq 0 ]; then SKIP=""; else sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp core check-update --skip-plugins --path=$WP_PATH; SKIP_ALL=$?; fi
-    if [ "$SKIP_ALL" -eq 0 ] && [ -z "$SKIP+xxx" ]; then SKIP="--skip-plugins"; else sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp core check-update --skip-plugins --skip-themes --path=$WP_PATH; SKIP_ALL=$?; fi
-    if [ ! "$SKIP_ALL" -eq 0 ]; then SKIP="--skip-plugins --skip-themes"; fi
-    # check for musicclub 
-    sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp theme list --path=$WP_PATH --skip-themes | grep musicclub; SKIP_THEMES=$?;
-    if [ "$SKIP_THEMES" -eq 0 ]; then SKIP="--skip-themes"; fi
-
-    sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp core check-update --path=$WP_PATH $SKIP | grep Success; WP_CORE=$?;
-    sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp plugin list --path=$WP_PATH $SKIP | grep available 1>&2; WP_PLUGINS=$?; 
-    sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp theme list --path=$WP_PATH $SKIP | grep available 1>&2; WP_THEMES=$?;
-    # expected outcome is WP_CORE = 0 WP_PLUGINS = 1 WP_THEMES = 1
-    if [ "$WP_THEMES" -eq 0 ]; then mail -s "WP_Theme Update for $WP_SITE" {{ ADMIN_EMAIL }} < /dev/null; fi
-    # bail out if both core and plugins are current
-    if [ "$WP_CORE" -eq 0 ] && [ "$WP_PLUGINS" -eq 1 ] && [ "$WP_THEMES" -eq 1 ]; then exit; fi
-    # create backup of database and content files
-    if [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ] && [ ! -f "$WP_USER_HOME/$DATE-$WP_SITE.sql" ]; then mysqldump -p{{ MYSQLDBPASS}} $WP_DB > $WP_USER_HOME/$DATE-$WP_SITE.sql; fi
-    if [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ] && [ ! -f "$WP_USER_HOME/$DATE-$WP_SITE.tar.gz" ]; then tar czvf $WP_USER_HOME/$DATE-$WP_SITE.tar.gz $WP_PATH $WP_USER_HOME/$DATE-$WP_SITE.sql; fi
-    # push to google drive
-    if [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ] && [ -f "$WP_USER_HOME/$DATE-$WP_SITE.tar.gz" ]; then cd $PLAYBOOK_DIR/utilities/google-drive-upload; ./upload.sh $WP_USER_HOME/$DATE-$WP_SITE.tar.gz {{ FOLDERNAME }}; fi
-    # remove db and tar file
-    if [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ] && [ -f "$WP_USER_HOME/$DATE-$WP_SITE.sql" ]; then rm $WP_USER_HOME/$DATE-$WP_SITE.sql; fi
-    if [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ] && [ -f "$WP_USER_HOME/$DATE-$WP_SITE.tar.gz" ]; then rm $WP_USER_HOME/$DATE-$WP_SITE.tar.gz; fi
-    if [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ]; then echo "user is $WP_USER site is $WP_SITE path is $WP_PATH - fixing site permissions"; fi
-    if [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ]; then find $WP_PATH -exec chown $WP_USER:$WP_GROUP {} \;; find $WP_PATH -type d -exec chmod 755 {} \;; find $WP_PATH -type f -exec chmod 644 {} \;; chgrp {{ WP_GROUP }} $WP_PATH/wp-config.php; chmod 660 $WP_PATH/wp-config.php; find $WP_PATH/wp-content -exec chgrp {{ WP_GROUP }} {} \;; find $WP_PATH/wp-content -type d -exec chmod 775 {} \;; find $WP_PATH/wp-content -type f -exec chmod 664 {} \;; chown {{ WP_GROUP }}:{{ WP_GROUP }} $WP_PATH/wp-admin/includes/file.php; fi
-    if [ "$WP_CORE" -eq 1 ] && [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ]; then chown $WP_USER:$WP_USER $WP_PATH/wp-admin/includes/file.php; fi
-    if [ "$WP_CORE" -eq 1 ] && [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ]; then sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp core update --path=$WP_PATH $SKIP; FAIL=$?; fi
-    if [ "$WP_CORE" -eq 1 ] && [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ]; then chown {{ WP_GROUP }}:{{ WP_GROUP }} $WP_PATH/wp-admin/includes/file.php; fi
-    if [ "$WP_PLUGINS" -eq 0 ] && [ ! -z "$WP_USER" ] && [ -f "$WP_PATH/wp-config.php" ]; then sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp plugin update --all --path=$WP_PATH --all $SKIP | grep Error; FAIL=$?; fi
-    if [ "$FAIL" -eq 0 ]; then FAIL=$(sudo -u $WP_USER $PLAYBOOK_DIR/utilities/wp-cli/bin/wp plugin update --all --path=$WP_PATH --all $SKIP | grep Error); echo $FAIL | mailx -s "WP_Plugin Update fail for $WP_SITE" niles@atheos.net; fi
-    /usr/local/bin/wp-fixperms.sh $WP_USER
-  with_items: "{{ apache_conf.stdout_lines }}"
-  ignore_errors: true
+- include: tasks/update_host.yml
+  loop: "{{ findvhost.results }}"
+  loop_control:
+    loop_var: bu
+  become: yes

@@ -1,0 +1,39 @@
+---
+- name: Dump database
+  mysql_db:
+    state: dump
+    name: "{{ WPCONFIG.results[0].stdout|trim }}"
+    login_user: "{{ WPCONFIG.results[1].stdout|trim }}"
+    login_password: "{{ WPCONFIG.results[2].stdout|trim }}"
+    login_host: "{{ WPCONFIG.results[3].stdout|trim }}"
+    target: "{{ bu.stdout|trim }}/../{{ WPCONFIG.results[0].stdout|trim }}.sql"
+  become: yes
+
+- name: backup everything
+  archive:
+    path:
+    - "{{ bu.stdout|trim }}/../"
+    dest: "{{ bu.stdout|trim }}/../{{ ansible_date_time.date }}-{{ WPCONFIG.results[0].stdout|trim }}.tar.bz2"
+    format: bz2
+  become: yes
+
+  # push to google drive
+- name: backup to google drive
+  raw: |
+    DATE=`date +"%Y-%m-%d"`
+    WP_GROUP={{ WP_GROUP }}
+    PLAYBOOK_DIR={{ playbook_dir }}
+    WP_SITE=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ bu.item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 2)
+    WP_USER=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ bu.item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 4 | cut -d '/' -f 3)
+    WP_PATH=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ bu.item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 4)
+    WP_USER_HOME="/home/$WP_USER"
+    cd utilities/google-drive-upload/sh; ./upload.sh {{ bu.stdout|trim }}/../{{ ansible_date_time.date }}-{{ WPCONFIG.results[0].stdout|trim }}.tar.bz2 {{ FOLDERNAME }}; 
+
+- name: delete db & archive files
+  file:
+    state: absent
+    path: "{{ item }}"
+  loop:
+    - "{{ bu.stdout|trim }}/../{{ WPCONFIG.results[0].stdout|trim }}.sql"
+    - "{{ bu.stdout|trim }}/../{{ ansible_date_time.date }}-{{ WPCONFIG.results[0].stdout|trim }}.tar.bz2"
+  become: yes
