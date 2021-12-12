@@ -1,4 +1,10 @@
 ---
+- name: reset perms 
+  raw: |
+    WP_USER=$(grep -oP '(ServerName.*|DocumentRoot.*)' {{ bu.item }} | sed ':a;N;$!ba;s/\n/ /g' | cut -d ' ' -f 4 | cut -d '/' -f 3)
+    /usr/local/bin/wp-fixperms.sh $WP_USER
+  become: yes
+
 - name: wp update plugins
   raw: |
     DATE=`date +"%Y-%m-%d"`

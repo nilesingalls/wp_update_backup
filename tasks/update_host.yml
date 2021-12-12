@@ -57,4 +57,4 @@
 - include: tasks/update_host_core.yml
   when: wpsite.stat.exists and UPDATECORE is defined
 
-- debug: msg="stats {{ wpsite.stat.exists }} core {{ UPDATECORE }}"
+- debug: msg="stats {{ wpsite.stat.exists }} core {{ UPDATECORE | default('no update') }}"
