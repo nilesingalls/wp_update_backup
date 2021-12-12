@@ -29,7 +29,7 @@
 
 - set_fact:
     skip_plugins: True
-  when: wpsite.stat.exists is defined and item.stat.isdir is defined 
+  when: wpsite.stat.exists and ( item.stat.exists and item.stat.isdir is defined )
   loop: "{{ badplugin.results }}"
 
 - name: find problem themes
@@ -41,7 +41,7 @@
 
 - set_fact:
     skip_themes: True
-  when: wpsite.stat.exists is defined and item.stat.isdir is defined 
+  when: wpsite.stat.exists and ( item.stat.exists and item.stat.isdir is defined )
   loop: "{{ badtheme.results }}"
 
 - include: tasks/update_host_backup.yml
